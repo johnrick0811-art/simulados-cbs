@@ -52,7 +52,7 @@
         <!-- Botões de Ação -->
         <div class="flex flex-wrap justify-between items-center gap-3 pt-4 border-t">
             <button onclick="salvarDadosLocais()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl text-xs transition shadow-lg">
-                💾 Salvar Dados Prontos para Geração
+                💾 Salvar Dados e Título
             </button>
             <button onclick="excluirTudo()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl text-xs transition shadow-lg">
                 ⚠️ Limpar Todos os Dados
@@ -134,6 +134,7 @@
             if (confirm(`Deseja realmente excluir os dados da Turma ${turma.toUpperCase()} deste simulado?`)) {
                 localStorage.removeItem(`dados_turma_${turma}_sim${simAtual}`);
                 carregarInterface();
+                alert(`Turma ${turma.toUpperCase()} excluída com sucesso!`);
             }
         }
 
@@ -148,7 +149,7 @@
             if (confirm("⚠️ Deseja limpar todos os dados salvos no navegador?")) {
                 localStorage.clear();
                 carregarInterface();
-                alert("Dados limpos com sucesso!");
+                alert("Todos os dados foram limpos com sucesso!");
             }
         }
 
