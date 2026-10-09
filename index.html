@@ -6,14 +6,13 @@
     <title>Painel do Professor - CBS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-gray-100 font-sans p-6">
     <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-lg">
         <header class="flex justify-between items-center mb-6 border-b pb-4">
             <div>
                 <h1 class="text-xl font-bold text-blue-600">🛠️ Painel de Controle - Simulados CBS</h1>
-                <p class="text-xs text-gray-500">Gerencie planilhas, configure simulados e publique para a nuvem.</p>
+                <p class="text-xs text-gray-500">Gerencie planilhas e configure os simulados para relatórios.</p>
             </div>
             <a href="documentos.html" class="bg-emerald-100 text-emerald-800 px-4 py-2 rounded-lg font-bold text-xs hover:bg-emerald-200 transition">📄 Ir para Gerador de Documentos</a>
         </header>
@@ -50,23 +49,19 @@
             </div>
         </div>
 
-        <!-- Botões de Ação e Exclusão Geral -->
+        <!-- Botões de Ação -->
         <div class="flex flex-wrap justify-between items-center gap-3 pt-4 border-t">
-            <button onclick="salvarEDistribuirNuvem()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl text-xs transition shadow-lg">
-                🚀 Salvar e Publicar na Nuvem (Supabase)
+            <button onclick="salvarDadosLocais()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl text-xs transition shadow-lg">
+                💾 Salvar Dados Prontos para Geração
             </button>
-            <button onclick="excluirBancoDados()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl text-xs transition shadow-lg">
-                ⚠️ Excluir Tudo do Banco de Dados
+            <button onclick="excluirTudo()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl text-xs transition shadow-lg">
+                ⚠️ Limpar Todos os Dados
             </button>
         </div>
-        <p id="msg-sucesso" class="text-green-600 font-bold text-xs mt-3 text-center hidden">✅ Operação realizada com sucesso!</p>
+        <p id="msg-sucesso" class="text-green-600 font-bold text-xs mt-3 text-center hidden">✅ Dados salvos com sucesso no navegador!</p>
     </div>
 
     <script>
-        const SUPABASE_URL = "https://ayclwucigtoufybvmtll.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_uXpJrC1SkAXsyqLqxqdFZw_RvEsxLXy";
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
         let simAtual = "3";
 
         function mudarSimulado() {
@@ -139,48 +134,22 @@
             if (confirm(`Deseja realmente excluir os dados da Turma ${turma.toUpperCase()} deste simulado?`)) {
                 localStorage.removeItem(`dados_turma_${turma}_sim${simAtual}`);
                 carregarInterface();
-                alert(`Turma ${turma.toUpperCase()} excluída localmente. Lembre-se de salvar na nuvem.`);
             }
         }
 
-        async function salvarEDistribuirNuvem() {
-            let dadosBackup = {};
-            for(let i = 0; i < localStorage.length; i++) {
-                let key = localStorage.key(i);
-                dadosBackup[key] = localStorage.getItem(key);
-            }
-
-            try {
-                let { error } = await supabaseClient
-                    .from('dados_sistema')
-                    .upsert({ id: 'estado_geral', conteudo: dadosBackup, atualizado_em: new Date() });
-
-                if (error) throw error;
-                mostrarMensagemSucesso("🚀 Dados salvos e publicados na nuvem com sucesso!");
-            } catch (err) {
-                alert("Erro ao salvar no Supabase: " + err.message);
-            }
-        }
-
-        async function excluirBancoDados() {
-            if (confirm("⚠️ ATENÇÃO: Deseja apagar TODOS os dados salvos no banco de dados do Supabase?")) {
-                try {
-                    let { error } = await supabaseClient.from('dados_sistema').delete().eq('id', 'estado_geral');
-                    if (error) throw error;
-                    localStorage.clear();
-                    carregarInterface();
-                    mostrarMensagemSucesso("🗑️ Banco de dados limpo com sucesso!");
-                } catch (err) {
-                    alert("Erro ao excluir do banco: " + err.message);
-                }
-            }
-        }
-
-        function mostrarMensagemSucesso(texto) {
+        function salvarDadosLocais() {
+            salvarTituloSimulado();
             let msg = document.getElementById("msg-sucesso");
-            msg.innerText = texto;
             msg.classList.remove("hidden");
-            setTimeout(() => msg.classList.add("hidden"), 4000);
+            setTimeout(() => msg.classList.add("hidden"), 3000);
+        }
+
+        function excluirTudo() {
+            if (confirm("⚠️ Deseja limpar todos os dados salvos no navegador?")) {
+                localStorage.clear();
+                carregarInterface();
+                alert("Dados limpos com sucesso!");
+            }
         }
 
         window.onload = carregarInterface;
