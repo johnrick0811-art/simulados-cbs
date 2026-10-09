@@ -39,7 +39,7 @@
                 <span id="status-a" class="text-xs text-gray-400">Nenhum arquivo</span>
             </div>
             <div class="p-4 bg-gray-50 rounded-xl border">
-                <h3 class="font-bold text-gray-800 text-xs mb-2">📄 Planilha EvalBee (Turma B)</h3>
+                <h3 class="font-bold text-gray-800 text-xs mb-2">📄 Planilha EvalBee (Turma B/C)</h3>
                 <input type="file" id="file-turma-b" accept=".xlsx" class="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-green-600 file:text-white mb-2">
                 <span id="status-b" class="text-xs text-gray-400">Nenhum arquivo</span>
             </div>
@@ -79,6 +79,39 @@
             }
         }
 
+        // Função para limpar o JSON gigante do EvalBee e salvar apenas o essencial (evita estouro e erro de fetch)
+        function limparDadosEvalBee(jsonBruto) {
+            return jsonBruto.map(item => {
+                let nome = item["Name"] || item["NAME"] || item["nome"] || "";
+                if (!nome) return null;
+                
+                let turma = String(item["Class"] || item["turma"] || "A").trim().toUpperCase();
+                
+                // Mapeia disciplinas de forma limpa
+                let port = Number(item["6 Ano -PORTUGUÊS"] || item["PORT"] || item["Português"] || 0);
+                let ing  = Number(item["6 Ano -INGLÊS "] || item["ING"] || item["Inglês"] || 0);
+                let hist = Number(item["6 Ano -HISTÓRIA"] || item["HIST"] || item["História"] || 0);
+                let geo  = Number(item["6 Ano -GEOGRAFIA"] || item["GEO"] || item["Geografia"] || 0);
+                let art  = Number(item["6 Ano -ARTES"] || item["ART"] || 0);
+                let cien = Number(item["6 Ano -BIOLOGIA"] || item["6 Ano -CIÊNCIAS"] || item["CIÊN"] || item["Ciências"] || 0);
+                let mat  = Number(item["6 Ano -MATEMÁTICA "] || item["MAT"] || item["Matemática"] || 0);
+                let soma = Number(item["Total Marks"] || (port + ing + hist + geo + art + cien + mat) || 0);
+
+                return {
+                    nome: String(nome).trim(),
+                    turma: turma.includes("C") ? "C" : "A",
+                    port: port,
+                    ing: ing,
+                    hist: hist,
+                    geo: geo,
+                    art: art,
+                    cien: cien,
+                    mat: mat,
+                    soma: soma
+                };
+            }).filter(x => x !== null);
+        }
+
         document.getElementById('file-turma-a').addEventListener('change', function(e) {
             let file = e.target.files[0];
             if (!file) return;
@@ -86,9 +119,11 @@
             reader.onload = function(evt) {
                 let data = new Uint8Array(evt.target.result);
                 let wb = XLSX.read(data, {type: 'array'});
-                let json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-                localStorage.setItem(`dados_turma_a_sim${simAtual}`, JSON.stringify(json));
-                document.getElementById("status-a").innerText = `${json.length} registros carregados.`;
+                let jsonRaw = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+                let jsonLimpo = limparDadosEvalBee(jsonRaw);
+                
+                localStorage.setItem(`dados_turma_a_sim${simAtual}`, JSON.stringify(jsonLimpo));
+                document.getElementById("status-a").innerText = `${jsonLimpo.length} registros processados.`;
                 atualizarBadge();
             };
             reader.readAsArrayBuffer(file);
@@ -101,9 +136,11 @@
             reader.onload = function(evt) {
                 let data = new Uint8Array(evt.target.result);
                 let wb = XLSX.read(data, {type: 'array'});
-                let json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-                localStorage.setItem(`dados_turma_b_sim${simAtual}`, JSON.stringify(json));
-                document.getElementById("status-b").innerText = `${json.length} registros carregados.`;
+                let jsonRaw = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+                let jsonLimpo = limparDadosEvalBee(jsonRaw);
+                
+                localStorage.setItem(`dados_turma_b_sim${simAtual}`, JSON.stringify(jsonLimpo));
+                document.getElementById("status-b").innerText = `${jsonLimpo.length} registros processados.`;
                 atualizarBadge();
             };
             reader.readAsArrayBuffer(file);
@@ -124,9 +161,9 @@
                 if (error) throw error;
                 document.getElementById("msg-sucesso").classList.remove("hidden");
                 setTimeout(() => document.getElementById("msg-sucesso").classList.add("hidden"), 4000);
-                alert("🚀 Dados enviados para o Supabase com sucesso!");
+                alert("🚀 Dados enviados e salvos na nuvem com sucesso!");
             } catch (err) {
-                alert("Erro ao salvar: " + err.message);
+                alert("Erro ao salvar no Supabase: " + err.message);
             }
         }
 
