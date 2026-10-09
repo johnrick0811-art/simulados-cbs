@@ -18,7 +18,7 @@
 </head>
 <body class="bg-gray-100 font-sans p-4 md:p-8">
 
-    <!-- Painel de Controles e Exportação -->
+    <!-- Painel de Controles e Botões de Exportação -->
     <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-md mb-6 no-print">
         <div class="flex justify-between items-center mb-4">
             <h1 class="text-base font-bold text-blue-700">📄 Gerador de Documentos Oficiais - CBS</h1>
@@ -53,20 +53,16 @@
             </div>
         </div>
 
-        <!-- Seção de Upload do Modelo Word e Botões -->
         <div class="flex flex-wrap justify-between items-center border-t pt-3 gap-3">
-            <div class="flex items-center gap-2">
-                <label class="text-[11px] font-bold text-gray-700">Seu Modelo Word (.docx):</label>
-                <input type="file" id="file-template-word" accept=".docx" onchange="carregarDocumento()" class="text-[11px] text-gray-500 file:py-1 file:px-2 file:rounded file:border-0 file:bg-gray-700 file:text-white">
-            </div>
+            <span id="status-modelo-carregado" class="text-xs font-bold text-gray-600">📑 Modelo Word: Verificando...</span>
             <div class="flex gap-2">
-                <button onclick="gerarWordComTemplate()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded text-xs transition shadow">📥 Baixar Word Preenchido</button>
+                <button onclick="gerarWordComTemplate()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded text-xs transition shadow">📥 Baixar Word Preenchido</button>
                 <button onclick="window.print()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded text-xs transition shadow">🖨️ Salvar PDF</button>
             </div>
         </div>
     </div>
 
-    <!-- TELA DE PRÉ-VISUALIZAÇÃO BASEADA NO MODELO -->
+    <!-- TELA DE PRÉ-VISUALIZAÇÃO -->
     <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-lg relatorio-card border border-gray-200">
         <div class="text-center border-b-2 border-black pb-3 mb-4">
             <h2 class="text-xs font-black tracking-wider">CBS</h2>
@@ -95,7 +91,7 @@
                     </tr>
                 </thead>
                 <tbody id="tabela-corpo">
-                    <tr><td colspan="10" class="border border-black px-2 py-4 text-center text-gray-500">Selecione o modelo e os dados para visualizar.</td></tr>
+                    <tr><td colspan="10" class="border border-black px-2 py-4 text-center text-gray-500">Carregando dados...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -116,6 +112,16 @@
 
             let tituloCustom = localStorage.getItem(`titulo_sim_${sim}`) || "III SIMULADO DE 2026";
             let serieCustom = localStorage.getItem(`serie_sim_${sim}`) || "4º ANO";
+            let nomeTemplate = localStorage.getItem(`template_nome_sim${sim}`);
+
+            let statusModelo = document.getElementById("status-modelo-carregado");
+            if (nomeTemplate) {
+                statusModelo.innerText = `📑 Modelo salvo: ${nomeTemplate}`;
+                statusModelo.className = "text-xs font-bold text-green-700";
+            } else {
+                statusModelo.innerText = `⚠️ Nenhum modelo Word salvo no Painel para este simulado!`;
+                statusModelo.className = "text-xs font-bold text-red-600";
+            }
             
             if (tipo === 'geral') {
                 tituloDoc.innerText = `${tituloCustom} - ${serieCustom} - CLASSIFICAÇÃO GERAL`;
@@ -188,13 +194,14 @@
         }
 
         async function gerarWordComTemplate() {
-            let fileInput = document.getElementById("file-template-word");
-            if (fileInput.files.length === 0) {
-                alert("Por favor, selecione o seu arquivo modelo em Word (.docx) primeiro.");
+            let sim = document.getElementById("filtro-simulado").value;
+            let templateBase64 = localStorage.getItem(`template_word_sim${sim}`);
+            
+            if (!templateBase64) {
+                alert("Nenhum modelo em Word (.docx) foi enviado no Painel de Controle para este simulado!");
                 return;
             }
 
-            let sim = document.getElementById("filtro-simulado").value;
             let tipo = document.getElementById("tipo-relatorio").value;
             let turmaFiltro = document.getElementById("filtro-turma").value;
             
@@ -223,38 +230,32 @@
                 soma: a.soma.toFixed(2).replace('.', ',')
             }));
 
-            let file = fileInput.files[0];
-            let reader = new FileReader();
+            try {
+                let zip = new PizZip(templateBase64);
+                let doc = new window.docxtemplater(zip, {
+                    paragraphLoop: true,
+                    linebreaks: true,
+                });
 
-            reader.onload = function(e) {
-                try {
-                    let zip = new PizZip(e.target.result);
-                    let doc = new window.docxtemplater(zip, {
-                        paragraphLoop: true,
-                        linebreaks: true,
-                    });
+                let textoTituloFinal = tipo === 'geral' 
+                    ? `${tituloCustom} - ${serieCustom} - CLASSIFICAÇÃO GERAL` 
+                    : `${tituloCustom} - ${serieCustom} ${turmaFiltro}`;
 
-                    let textoTituloFinal = tipo === 'geral' 
-                        ? `${tituloCustom} - ${serieCustom} - CLASSIFICAÇÃO GERAL` 
-                        : `${tituloCustom} - ${serieCustom} ${turmaFiltro}`;
+                doc.render({
+                    titulo_simulado: textoTituloFinal,
+                    data_geracao: new Date().toLocaleDateString('pt-BR'),
+                    alunos: alunosFormatados
+                });
 
-                    doc.render({
-                        titulo_simulado: textoTituloFinal,
-                        data_geracao: new Date().toLocaleDateString('pt-BR'),
-                        alunos: alunosFormatados
-                    });
+                let out = doc.getZip().generate({
+                    type: "blob",
+                    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                });
 
-                    let out = doc.getZip().generate({
-                        type: "blob",
-                        mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    });
-
-                    saveAs(out, `Relatorio_${tituloCustom.replace(/\s+/g, '_')}_${serieCustom}.docx`);
-                } catch (error) {
-                    alert("Erro ao processar o modelo Word. Verifique as tags: " + error.message);
-                }
-            };
-            reader.readAsArrayBuffer(file);
+                saveAs(out, `Relatorio_${tituloCustom.replace(/\s+/g, '_')}_${serieCustom}.docx`);
+            } catch (error) {
+                alert("Erro ao processar o modelo Word. Verifique as tags: " + error.message);
+            }
         }
 
         window.onload = carregarDocumento;
