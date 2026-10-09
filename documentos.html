@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerador de Documentos Oficiais - CBS</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Bibliotecas para processar e gerar o Word (.docx) com template -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.39.0/docxtemplater.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.4/pizzip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
@@ -29,7 +28,7 @@
         <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
             <div>
                 <label class="block text-[11px] font-bold text-gray-700 mb-1">Simulado</label>
-                <select id="filtro-simulado" class="w-full px-3 py-2 border rounded text-xs font-semibold bg-gray-50">
+                <select id="filtro-simulado" class="w-full px-3 py-2 border rounded text-xs font-semibold bg-gray-50" onchange="carregarDocumento()">
                     <option value="3" selected>3º Simulado</option>
                     <option value="2">2º Simulado</option>
                     <option value="1">1º Simulado</option>
@@ -37,20 +36,20 @@
             </div>
             <div>
                 <label class="block text-[11px] font-bold text-gray-700 mb-1">Tipo de Relatório</label>
-                <select id="tipo-relatorio" class="w-full px-3 py-2 border rounded text-xs font-semibold bg-gray-50">
+                <select id="tipo-relatorio" class="w-full px-3 py-2 border rounded text-xs font-semibold bg-gray-50" onchange="carregarDocumento()">
                     <option value="geral">Classificação Geral</option>
                     <option value="turma">Turma Específica</option>
                 </select>
             </div>
             <div>
                 <label class="block text-[11px] font-bold text-gray-700 mb-1">Turma</label>
-                <select id="filtro-turma" class="w-full px-3 py-2 border rounded text-xs font-semibold bg-gray-50">
+                <select id="filtro-turma" class="w-full px-3 py-2 border rounded text-xs font-semibold bg-gray-50" onchange="carregarDocumento()">
                     <option value="A">Turma A</option>
                     <option value="C">Turma B / C</option>
                 </select>
             </div>
             <div class="flex items-end">
-                <button onclick="carregarDocumento()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded text-xs transition shadow">🔍 Visualizar</button>
+                <button onclick="carregarDocumento()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded text-xs transition shadow">🔍 Atualizar</button>
             </div>
         </div>
 
@@ -67,7 +66,7 @@
         </div>
     </div>
 
-    <!-- TELA DE PRÉ-VISUALIZAÇÃO -->
+    <!-- TELA DE PRÉ-VISUALIZAÇÃO DINÂMICA -->
     <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-lg relatorio-card border border-gray-200">
         <div class="text-center border-b-2 border-black pb-3 mb-4">
             <h2 class="text-xs font-black tracking-wider">CBS</h2>
@@ -96,7 +95,7 @@
                     </tr>
                 </thead>
                 <tbody id="tabela-corpo">
-                    <tr><td colspan="10" class="border border-black px-2 py-4 text-center text-gray-500">Selecione os parâmetros e clique em Visualizar.</td></tr>
+                    <tr><td colspan="10" class="border border-black px-2 py-4 text-center text-gray-500">Carregando...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -117,13 +116,14 @@
 
             tbody.innerHTML = `<tr><td colspan="10" class="border border-black px-2 py-4 text-center text-gray-500">Carregando dados...</td></tr>`;
 
-            let tituloCustom = localStorage.getItem(`titulo_sim_${sim}`) || "III SIMULADO DE 2026 - 4º ANO A";
+            let tituloCustom = localStorage.getItem(`titulo_sim_${sim}`) || "III SIMULADO DE 2026";
+            let serieCustom = localStorage.getItem(`serie_sim_${sim}`) || "4º ANO";
             
             if (tipo === 'geral') {
-                tituloDoc.innerText = `${tituloCustom} - CLASSIFICAÇÃO GERAL`;
+                tituloDoc.innerText = `${tituloCustom} - ${serieCustom} - CLASSIFICAÇÃO GERAL`;
                 thCol1.innerText = `SALA`;
             } else {
-                tituloDoc.innerText = `${tituloCustom} - TURMA ${turmaFiltro}`;
+                tituloDoc.innerText = `${tituloCustom} - ${serieCustom} ${turmaFiltro}`;
                 thCol1.innerText = `SALA`;
             }
 
@@ -189,7 +189,6 @@
             return Array.from(mapa.values());
         }
 
-        // Função que lê o seu modelo Word (.docx) enviado e injeta os dados nas tags
         async function gerarWordComTemplate() {
             let fileInput = document.getElementById("file-template-word");
             if (fileInput.files.length === 0) {
@@ -201,7 +200,8 @@
             let tipo = document.getElementById("tipo-relatorio").value;
             let turmaFiltro = document.getElementById("filtro-turma").value;
             
-            let tituloCustom = localStorage.getItem(`titulo_sim_${sim}`) || "III SIMULADO DE 2026 - 4º ANO A";
+            let tituloCustom = localStorage.getItem(`titulo_sim_${sim}`) || "III SIMULADO DE 2026";
+            let serieCustom = localStorage.getItem(`serie_sim_${sim}`) || "4º ANO";
             let dadosAlunos = extrairAlunosDoLocalStorage(sim);
 
             if (tipo === 'geral') {
@@ -236,8 +236,12 @@
                         linebreaks: true,
                     });
 
+                    let textoTituloFinal = tipo === 'geral' 
+                        ? `${tituloCustom} - ${serieCustom} - CLASSIFICAÇÃO GERAL` 
+                        : `${tituloCustom} - ${serieCustom} ${turmaFiltro}`;
+
                     doc.render({
-                        titulo_simulado: `${tituloCustom} ${tipo === 'geral' ? '- CLASSIFICAÇÃO GERAL' : '- TURMA ' + turmaFiltro}`,
+                        titulo_simulado: textoTituloFinal,
                         data_geracao: new Date().toLocaleDateString('pt-BR'),
                         alunos: alunosFormatados
                     });
@@ -247,13 +251,15 @@
                         mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                     });
 
-                    saveAs(out, `Relatorio_${tituloCustom.replace(/\s+/g, '_')}.docx`);
+                    saveAs(out, `Relatorio_${tituloCustom.replace(/\s+/g, '_')}_${serieCustom}.docx`);
                 } catch (error) {
                     alert("Erro ao processar o modelo Word. Verifique as tags: " + error.message);
                 }
             };
             reader.readAsArrayBuffer(file);
         }
+
+        window.onload = carregarDocumento;
     </script>
 </body>
 </html>
