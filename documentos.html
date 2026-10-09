@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerador de Documentos Oficiais - CBS</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Bibliotecas corrigidas e atualizadas para o Word (.docx) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.4/pizzip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.39.0/docxtemplater.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
@@ -19,7 +18,7 @@
 </head>
 <body class="bg-gray-100 font-sans p-4 md:p-8">
 
-    <!-- Painel de Controles e Exportação (Oculto na Impressão) -->
+    <!-- Painel de Controles e Exportação -->
     <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-md mb-6 no-print">
         <div class="flex justify-between items-center mb-4">
             <h1 class="text-base font-bold text-blue-700">📄 Gerador de Documentos Oficiais - CBS</h1>
@@ -58,7 +57,7 @@
         <div class="flex flex-wrap justify-between items-center border-t pt-3 gap-3">
             <div class="flex items-center gap-2">
                 <label class="text-[11px] font-bold text-gray-700">Seu Modelo Word (.docx):</label>
-                <input type="file" id="file-template-word" accept=".docx" class="text-[11px] text-gray-500 file:py-1 file:px-2 file:rounded file:border-0 file:bg-gray-700 file:text-white">
+                <input type="file" id="file-template-word" accept=".docx" onchange="carregarDocumento()" class="text-[11px] text-gray-500 file:py-1 file:px-2 file:rounded file:border-0 file:bg-gray-700 file:text-white">
             </div>
             <div class="flex gap-2">
                 <button onclick="gerarWordComTemplate()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded text-xs transition shadow">📥 Baixar Word Preenchido</button>
@@ -67,7 +66,7 @@
         </div>
     </div>
 
-    <!-- TELA DE PRÉ-VISUALIZAÇÃO DINÂMICA -->
+    <!-- TELA DE PRÉ-VISUALIZAÇÃO BASEADA NO MODELO -->
     <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-lg relatorio-card border border-gray-200">
         <div class="text-center border-b-2 border-black pb-3 mb-4">
             <h2 class="text-xs font-black tracking-wider">CBS</h2>
@@ -96,7 +95,7 @@
                     </tr>
                 </thead>
                 <tbody id="tabela-corpo">
-                    <tr><td colspan="10" class="border border-black px-2 py-4 text-center text-gray-500">Carregando...</td></tr>
+                    <tr><td colspan="10" class="border border-black px-2 py-4 text-center text-gray-500">Selecione o modelo e os dados para visualizar.</td></tr>
                 </tbody>
             </table>
         </div>
@@ -115,8 +114,6 @@
             let thCol1 = document.getElementById("th-col-1");
             const tbody = document.getElementById("tabela-corpo");
 
-            tbody.innerHTML = `<tr><td colspan="10" class="border border-black px-2 py-4 text-center text-gray-500">Carregando dados...</td></tr>`;
-
             let tituloCustom = localStorage.getItem(`titulo_sim_${sim}`) || "III SIMULADO DE 2026";
             let serieCustom = localStorage.getItem(`serie_sim_${sim}`) || "4º ANO";
             
@@ -131,7 +128,7 @@
             let dadosAlunos = extrairAlunosDoLocalStorage(sim);
 
             if (dadosAlunos.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="10" class="border border-black px-2 py-4 text-center text-red-500 font-bold">Nenhum dado encontrado para este simulado. Faça o upload no Painel.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="10" class="border border-black px-2 py-4 text-center text-red-500 font-bold">Nenhum dado encontrado. Faça o upload no Painel.</td></tr>`;
                 return;
             }
 
