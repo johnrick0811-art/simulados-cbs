@@ -13,45 +13,53 @@
         <header class="flex justify-between items-center mb-6 border-b pb-4">
             <div>
                 <h1 class="text-xl font-bold text-blue-600">🛠️ Painel de Controle - Simulados CBS</h1>
-                <p class="text-xs text-gray-500">Faça o upload das planilhas do EvalBee e publique para a nuvem.</p>
+                <p class="text-xs text-gray-500">Gerencie planilhas, configure simulados e publique para a nuvem.</p>
             </div>
             <a href="documentos.html" class="bg-emerald-100 text-emerald-800 px-4 py-2 rounded-lg font-bold text-xs hover:bg-emerald-200 transition">📄 Ir para Gerador de Documentos</a>
         </header>
 
-        <!-- Seletor de Simulado -->
-        <div class="mb-6 bg-blue-50 p-4 rounded-xl border border-blue-200 flex justify-between items-center">
+        <!-- Configurações do Simulado e Título -->
+        <div class="mb-6 bg-blue-50 p-4 rounded-xl border border-blue-200 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
             <div>
-                <label class="block text-xs font-bold text-blue-900 mb-1">Simulado Atual:</label>
-                <select id="select-simulado" onchange="mudarSimulado()" class="px-3 py-1.5 border rounded-lg font-bold text-xs bg-white">
+                <label class="block text-xs font-bold text-blue-900 mb-1">Selecionar / Criar Simulado:</label>
+                <select id="select-simulado" onchange="mudarSimulado()" class="w-full px-3 py-2 border rounded-lg font-bold text-xs bg-white">
                     <option value="1">1º Simulado</option>
                     <option value="2">2º Simulado</option>
                     <option value="3" selected>3º Simulado</option>
                 </select>
             </div>
-            <span id="status-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-gray-200 text-gray-700">⚪ Verificando...</span>
+            <div>
+                <label class="block text-xs font-bold text-blue-900 mb-1">Nome / Título do Simulado (Exibido no Documento):</label>
+                <input type="text" id="input-titulo-simulado" placeholder="Ex: III SIMULADO DE 2026 - 4º ANO" oninput="salvarTituloSimulado()" class="w-full px-3 py-2 border rounded-lg text-xs bg-white font-semibold">
+            </div>
         </div>
 
         <!-- Área de Upload -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div class="p-4 bg-gray-50 rounded-xl border">
+            <div class="p-4 bg-gray-50 rounded-xl border relative">
                 <h3 class="font-bold text-gray-800 text-xs mb-2">📄 Planilha EvalBee (Turma A)</h3>
                 <input type="file" id="file-turma-a" accept=".xlsx" class="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-blue-600 file:text-white mb-2">
-                <span id="status-a" class="text-xs text-gray-400">Nenhum arquivo</span>
+                <span id="status-a" class="text-xs text-gray-400 block mb-2">Nenhum arquivo</span>
+                <button onclick="excluirTurma('a')" class="bg-red-100 hover:bg-red-200 text-red-700 px-2.5 py-1 rounded text-[11px] font-bold transition">🗑️ Excluir Turma A</button>
             </div>
-            <div class="p-4 bg-gray-50 rounded-xl border">
-                <h3 class="font-bold text-gray-800 text-xs mb-2">📄 Planilha EvalBee (Turma B/C)</h3>
+            <div class="p-4 bg-gray-50 rounded-xl border relative">
+                <h3 class="font-bold text-gray-800 text-xs mb-2">📄 Planilha EvalBee (Turma B / C)</h3>
                 <input type="file" id="file-turma-b" accept=".xlsx" class="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-green-600 file:text-white mb-2">
-                <span id="status-b" class="text-xs text-gray-400">Nenhum arquivo</span>
+                <span id="status-b" class="text-xs text-gray-400 block mb-2">Nenhum arquivo</span>
+                <button onclick="excluirTurma('b')" class="bg-red-100 hover:bg-red-200 text-red-700 px-2.5 py-1 rounded text-[11px] font-bold transition">🗑️ Excluir Turma B/C</button>
             </div>
         </div>
 
-        <!-- Botão de Sincronização -->
-        <div class="text-center">
-            <button onclick="salvarEDistribuirNuvem()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl text-xs transition shadow-lg">
+        <!-- Botões de Ação e Exclusão Geral -->
+        <div class="flex flex-wrap justify-between items-center gap-3 pt-4 border-t">
+            <button onclick="salvarEDistribuirNuvem()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl text-xs transition shadow-lg">
                 🚀 Salvar e Publicar na Nuvem (Supabase)
             </button>
-            <p id="msg-sucesso" class="text-green-600 font-bold text-xs mt-2 hidden">✅ Dados salvos com sucesso na nuvem!</p>
+            <button onclick="excluirBancoDados()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl text-xs transition shadow-lg">
+                ⚠️ Excluir Tudo do Banco de Dados
+            </button>
         </div>
+        <p id="msg-sucesso" class="text-green-600 font-bold text-xs mt-3 text-center hidden">✅ Operação realizada com sucesso!</p>
     </div>
 
     <script>
@@ -63,31 +71,31 @@
 
         function mudarSimulado() {
             simAtual = document.getElementById("select-simulado").value;
-            atualizarBadge();
+            carregarInterface();
         }
 
-        function atualizarBadge() {
-            let badge = document.getElementById("status-badge");
+        function carregarInterface() {
+            let tituloSalvo = localStorage.getItem(`titulo_sim_${simAtual}`) || "III SIMULADO DE 2026";
+            document.getElementById("input-titulo-simulado").value = tituloSalvo;
+
             let temA = localStorage.getItem(`dados_turma_a_sim${simAtual}`);
             let temB = localStorage.getItem(`dados_turma_b_sim${simAtual}`);
-            if (temA || temB) {
-                badge.className = "px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800";
-                badge.innerText = "🟢 Dados Carregados";
-            } else {
-                badge.className = "px-3 py-1 rounded-full text-xs font-bold bg-gray-200 text-gray-700";
-                badge.innerText = "⚪ Vazio";
-            }
+
+            document.getElementById("status-a").innerText = temA ? "🟢 Turma A carregada." : "Nenhum arquivo";
+            document.getElementById("status-b").innerText = temB ? "🟢 Turma B/C carregada." : "Nenhum arquivo";
         }
 
-        // Função para limpar o JSON gigante do EvalBee e salvar apenas o essencial (evita estouro e erro de fetch)
+        function salvarTituloSimulado() {
+            let titulo = document.getElementById("input-titulo-simulado").value;
+            localStorage.setItem(`titulo_sim_${simAtual}`, titulo);
+        }
+
         function limparDadosEvalBee(jsonBruto) {
             return jsonBruto.map(item => {
                 let nome = item["Name"] || item["NAME"] || item["nome"] || "";
                 if (!nome) return null;
                 
                 let turma = String(item["Class"] || item["turma"] || "A").trim().toUpperCase();
-                
-                // Mapeia disciplinas de forma limpa
                 let port = Number(item["6 Ano -PORTUGUÊS"] || item["PORT"] || item["Português"] || 0);
                 let ing  = Number(item["6 Ano -INGLÊS "] || item["ING"] || item["Inglês"] || 0);
                 let hist = Number(item["6 Ano -HISTÓRIA"] || item["HIST"] || item["História"] || 0);
@@ -97,18 +105,7 @@
                 let mat  = Number(item["6 Ano -MATEMÁTICA "] || item["MAT"] || item["Matemática"] || 0);
                 let soma = Number(item["Total Marks"] || (port + ing + hist + geo + art + cien + mat) || 0);
 
-                return {
-                    nome: String(nome).trim(),
-                    turma: turma.includes("C") ? "C" : "A",
-                    port: port,
-                    ing: ing,
-                    hist: hist,
-                    geo: geo,
-                    art: art,
-                    cien: cien,
-                    mat: mat,
-                    soma: soma
-                };
+                return { nome: String(nome).trim(), turma: turma.includes("C") ? "C" : "A", port, ing, hist, geo, art, cien, mat, soma };
             }).filter(x => x !== null);
         }
 
@@ -117,14 +114,10 @@
             if (!file) return;
             let reader = new FileReader();
             reader.onload = function(evt) {
-                let data = new Uint8Array(evt.target.result);
-                let wb = XLSX.read(data, {type: 'array'});
-                let jsonRaw = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-                let jsonLimpo = limparDadosEvalBee(jsonRaw);
-                
+                let wb = XLSX.read(new Uint8Array(evt.target.result), {type: 'array'});
+                let jsonLimpo = limparDadosEvalBee(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]));
                 localStorage.setItem(`dados_turma_a_sim${simAtual}`, JSON.stringify(jsonLimpo));
-                document.getElementById("status-a").innerText = `${jsonLimpo.length} registros processados.`;
-                atualizarBadge();
+                carregarInterface();
             };
             reader.readAsArrayBuffer(file);
         });
@@ -134,17 +127,21 @@
             if (!file) return;
             let reader = new FileReader();
             reader.onload = function(evt) {
-                let data = new Uint8Array(evt.target.result);
-                let wb = XLSX.read(data, {type: 'array'});
-                let jsonRaw = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-                let jsonLimpo = limparDadosEvalBee(jsonRaw);
-                
+                let wb = XLSX.read(new Uint8Array(evt.target.result), {type: 'array'});
+                let jsonLimpo = limparDadosEvalBee(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]));
                 localStorage.setItem(`dados_turma_b_sim${simAtual}`, JSON.stringify(jsonLimpo));
-                document.getElementById("status-b").innerText = `${jsonLimpo.length} registros processados.`;
-                atualizarBadge();
+                carregarInterface();
             };
             reader.readAsArrayBuffer(file);
         });
+
+        function excluirTurma(turma) {
+            if (confirm(`Deseja realmente excluir os dados da Turma ${turma.toUpperCase()} deste simulado?`)) {
+                localStorage.removeItem(`dados_turma_${turma}_sim${simAtual}`);
+                carregarInterface();
+                alert(`Turma ${turma.toUpperCase()} excluída localmente. Lembre-se de salvar na nuvem.`);
+            }
+        }
 
         async function salvarEDistribuirNuvem() {
             let dadosBackup = {};
@@ -159,15 +156,34 @@
                     .upsert({ id: 'estado_geral', conteudo: dadosBackup, atualizado_em: new Date() });
 
                 if (error) throw error;
-                document.getElementById("msg-sucesso").classList.remove("hidden");
-                setTimeout(() => document.getElementById("msg-sucesso").classList.add("hidden"), 4000);
-                alert("🚀 Dados enviados e salvos na nuvem com sucesso!");
+                mostrarMensagemSucesso("🚀 Dados salvos e publicados na nuvem com sucesso!");
             } catch (err) {
                 alert("Erro ao salvar no Supabase: " + err.message);
             }
         }
 
-        window.onload = atualizarBadge;
+        async function excluirBancoDados() {
+            if (confirm("⚠️ ATENÇÃO: Deseja apagar TODOS os dados salvos no banco de dados do Supabase?")) {
+                try {
+                    let { error } = await supabaseClient.from('dados_sistema').delete().eq('id', 'estado_geral');
+                    if (error) throw error;
+                    localStorage.clear();
+                    carregarInterface();
+                    mostrarMensagemSucesso("🗑️ Banco de dados limpo com sucesso!");
+                } catch (err) {
+                    alert("Erro ao excluir do banco: " + err.message);
+                }
+            }
+        }
+
+        function mostrarMensagemSucesso(texto) {
+            let msg = document.getElementById("msg-sucesso");
+            msg.innerText = texto;
+            msg.classList.remove("hidden");
+            setTimeout(() => msg.classList.add("hidden"), 4000);
+        }
+
+        window.onload = carregarInterface;
     </script>
 </body>
 </html>
