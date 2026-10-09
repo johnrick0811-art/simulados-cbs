@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Professor - CBS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-100 font-sans p-6">
+    <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-lg">
+        <header class="flex justify-between items-center mb-6 border-b pb-4">
+            <div>
+                <h1 class="text-xl font-bold text-blue-600">🛠️ Painel de Controle - Simulados CBS</h1>
+                <p class="text-xs text-gray-500">Faça o upload das planilhas do EvalBee e publique para a nuvem.</p>
+            </div>
+            <a href="documentos.html" class="bg-emerald-100 text-emerald-800 px-4 py-2 rounded-lg font-bold text-xs hover:bg-emerald-200 transition">📄 Ir para Gerador de Documentos</a>
+        </header>
+
+        <!-- Seletor de Simulado -->
+        <div class="mb-6 bg-blue-50 p-4 rounded-xl border border-blue-200 flex justify-between items-center">
+            <div>
+                <label class="block text-xs font-bold text-blue-900 mb-1">Simulado Atual:</label>
+                <select id="select-simulado" onchange="mudarSimulado()" class="px-3 py-1.5 border rounded-lg font-bold text-xs bg-white">
+                    <option value="1">1º Simulado</option>
+                    <option value="2">2º Simulado</option>
+                    <option value="3" selected>3º Simulado</option>
+                </select>
+            </div>
+            <span id="status-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-gray-200 text-gray-700">⚪ Verificando...</span>
+        </div>
+
+        <!-- Área de Upload -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div class="p-4 bg-gray-50 rounded-xl border">
+                <h3 class="font-bold text-gray-800 text-xs mb-2">📄 Planilha EvalBee (Turma A ou Geral)</h3>
+                <input type="file" id="file-turma-a" accept=".xlsx" class="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-blue-600 file:text-white mb-2">
+                <span id="status-a" class="text-xs text-gray-400">Nenhum arquivo</span>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl border">
+                <h3 class="font-bold text-gray-800 text-xs mb-2">📄 Planilha EvalBee (Turma B)</h3>
+                <input type="file" id="file-turma-b" accept=".xlsx" class="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-green-600 file:text-white mb-2">
+                <span id="status-b" class="text-xs text-gray-400">Nenhum arquivo</span>
+            </div>
+        </div>
+
+        <!-- Botão de Sincronização -->
+        <div class="text-center">
+            <button onclick="salvarEDistribuirNuvem()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl text-xs transition shadow-lg">
+                🚀 Salvar e Publicar na Nuvem (Supabase)
+            </button>
+            <p id="msg-sucesso" class="text-green-600 font-bold text-xs mt-2 hidden">✅ Dados salvos com sucesso na nuvem!</p>
+        </div>
+    </div>
+
+    <script>
+        // Suas credenciais do Supabase
+        const SUPABASE_URL = "https://ayclwucigtoufybvmtll.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_uXpJrC1SkAXsyqLqxqdFZw_RvEsxLXy";
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let simAtual = "3";
+
+        function mudarSimulado() {
+            simAtual = document.getElementById("select-simulado").value;
+            atualizarBadge();
+        }
+
+        function atualizarBadge() {
+            let dadosA = localStorage.getItem(`dados_turma_a_sim${sim];`);
+            let badge = document.getElementById("status-badge");
+            badge.innerText = localStorage.getItem(`dados_turma_a_sim${simAtual}`) ? "🟢 Dados Carregados" : "⚪ Vazio";
+        }
+
+        // Leitura do arquivo A
+        document.getElementById('file-turma-a').addEventListener('change', function(e) {
+            let file = e.target.files[0];
+            if (!file) return;
+            let reader = new FileReader();
+            reader.onload = function(evt) {
+                let data = new Uint8Array(evt.target.result);
+                let wb = XLSX.read(data, {type: 'array'});
+                let json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+                localStorage.setItem(`dados_turma_a_sim${simAtual}`, JSON.stringify(json));
+                document.getElementById("status-a").innerText = `${json.length} registros carregados.`;
+                atualizarBadge();
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        // Leitura do arquivo B
+        document.getElementById('file-turma-b').addEventListener('change', function(e) {
+            let file = e.target.files[0];
+            if (!file) return;
+            let reader = new FileReader();
+            reader.onload = function(evt) {
+                let data = new Uint8Array(evt.target.result);
+                let wb = XLSX.read(data, {type: 'array'});
+                let json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+                localStorage.setItem(`dados_turma_b_sim${simAtual}`, JSON.stringify(json));
+                document.getElementById("status-b").innerText = `${json.length} registros carregados.`;
+                atualizarBadge();
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        async function salvarEDistribuirNuvem() {
+            let dadosBackup = {};
+            for(let i = 0; i < localStorage.length; i++) {
+                let key = localStorage.key(i);
+                dadosBackup[key] = localStorage.getItem(key);
+            }
+
+            try {
+                let { error } = await supabaseClient
+                    .from('dados_sistema')
+                    .upsert({ id: 'estado_geral', conteudo: dadosBackup, atualizado_em: new Date() });
+
+                if (error) throw error;
+                document.getElementById("msg-sucesso").classList.remove("hidden");
+                setTimeout(() => document.getElementById("msg-sucesso").classList.add("hidden"), 4000);
+                alert("🚀 Dados enviados para o Supabase com sucesso!");
+            } catch (err) {
+                alert("Erro ao salvar: " + err.message);
+            }
+        }
+    </script>
+</body>
+</html>

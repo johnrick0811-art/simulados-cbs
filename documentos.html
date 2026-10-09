@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Documentos Oficiais - CBS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @media print {
+            body { background: white; padding: 0; }
+            .no-print { display: none; }
+            .relatorio-card { box-shadow: none; border: none; margin: 0; width: 100%; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans p-4 md:p-8">
+
+    <!-- Menu de Filtros (Oculto na Impressão) -->
+    <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-md mb-6 no-print">
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-base font-bold text-blue-700">📄 Gerador de Documentos Oficiais - CBS</h1>
+            <a href="painel.html" class="bg-gray-200 text-gray-700 px-3 py-1 rounded text-xs font-bold">⬅ Voltar ao Painel</a>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+            <div>
+                <label class="block text-[11px] font-bold text-gray-700 mb-1">Tipo de Relatório</label>
+                <select id="tipo-relatorio" class="w-full px-3 py-2 border rounded text-xs font-semibold bg-gray-50">
+                    <option value="geral">Classificação Geral (Série Completa)</option>
+                    <option value="turma">Relatório por Turma Específica</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-[11px] font-bold text-gray-700 mb-1">Turma</label>
+                <select id="filtro-turma" class="w-full px-3 py-2 border rounded text-xs font-semibold bg-gray-50">
+                    <option value="A">4º Ano A</option>
+                    <option value="B">4º Ano B</option>
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button onclick="carregarDocumento()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded text-xs transition shadow">🔍 Gerar Documento</button>
+            </div>
+        </div>
+
+        <div class="flex justify-between items-center border-t pt-3">
+            <span class="text-[11px] text-gray-500">Clique em Imprimir para salvar como PDF limpo em A4.</span>
+            <button onclick="window.print()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded text-xs transition shadow">🖨️ Imprimir / Salvar PDF</button>
+        </div>
+    </div>
+
+    <!-- DOCUMENTO OFICIAL FORMATADO -->
+    <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-lg relatorio-card border border-gray-200">
+        <!-- Cabeçalho Institucional Oficial -->
+        <div class="text-center border-b-2 border-black pb-3 mb-4">
+            <h2 class="text-xs font-black tracking-wider">CBS</h2>
+            <h1 class="text-sm font-black tracking-wide my-0.5">COLÉGIO BATISTA DE SANTARÉM</h1>
+            <p class="text-[10px] font-bold text-gray-700 uppercase tracking-widest">78 ANOS EDUCANDO GERAÇÕES E FAZENDO HISTÓRIA!</p>
+        </div>
+
+        <!-- Título Dinâmico -->
+        <div id="doc-titulo" class="text-center font-bold text-xs mb-4 uppercase">
+            CLASSIFICAÇÃO GERAL DO III SIMULADO DE 2026 - 4º ANO
+        </div>
+
+        <!-- Tabela -->
+        <div class="overflow-x-auto">
+            <table class="min-w-full border-collapse border border-black text-[11px]">
+                <thead>
+                    <tr class="bg-gray-100 text-black">
+                        <th class="border border-black px-2 py-1 text-center w-12" id="th-col-1">SALA</th>
+                        <th class="border border-black px-2 py-1 text-left">NOME DO ALUNO</th>
+                        <th class="border border-black px-2 py-1 text-center w-10">PORT.</th>
+                        <th class="border border-black px-2 py-1 text-center w-10">ING.</th>
+                        <th class="border border-black px-2 py-1 text-center w-10">HIST.</th>
+                        <th class="border border-black px-2 py-1 text-center w-10">GEO.</th>
+                        <th class="border border-black px-2 py-1 text-center w-10">ART.</th>
+                        <th class="border border-black px-2 py-1 text-center w-10">CIÊN.</th>
+                        <th class="border border-black px-2 py-1 text-center w-10">MAT.</th>
+                        <th class="border border-black px-2 py-1 text-center w-12 font-bold">SOMA</th>
+                    </tr>
+                </thead>
+                <tbody id="tabela-corpo">
+                    <tr><td colspan="10" class="border border-black px-2 py-4 text-center text-gray-500">Clique em "Gerar Documento" acima.</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Rodapé -->
+        <div class="text-center font-bold text-[10px] mt-6 text-gray-800 tracking-wider">
+            III SIMULADO CBS 2026
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://ayclwucigtoufybvmtll.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_uXpJrC1SkAXsyqLqxqdFZw_RvEsxLXy";
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function carregarDocumento() {
+            let tipo = document.getElementById("tipo-relatorio").value;
+            let turmaFiltro = document.getElementById("filtro-turma").value;
+            let tituloDoc = document.getElementById("doc-titulo");
+            let thCol1 = document.getElementById("th-col-1");
+            const tbody = document.getElementById("tabela-corpo");
+
+            tbody.innerHTML = `<tr><td colspan="10" class="border border-black px-2 py-4 text-center text-gray-500">Buscando dados na nuvem...</td></tr>`;
+
+            let dadosAlunos = [];
+            try {
+                let { data, error } = await supabaseClient.from('dados_sistema').select('*').eq('id', 'estado_geral').single();
+                if (data && data.conteudo) {
+                    dadosAlunos = extrairAlunosDoStorage(data.conteudo);
+                } else {
+                    dadosAlunos = extrairAlunosDoStorage(localStorage);
+                }
+            } catch (err) {
+                dadosAlunos = extrairAlunosDoStorage(localStorage);
+            }
+
+            if (dadosAlunos.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="10" class="border border-black px-2 py-4 text-center text-red-500 font-bold">Nenhum dado encontrado. Faça upload das planilhas no Painel primeiro.</td></tr>`;
+                return;
+            }
+
+            if (tipo === 'geral') {
+                tituloDoc.innerText = `CLASSIFICAÇÃO GERAL DO III SIMULADO DE 2026 - 4º ANO`;
+                thCol1.innerText = `SALA`;
+                dadosAlunos.sort((a, b) => b.soma - a.soma);
+            } else {
+                tituloDoc.innerText = `III SIMULADO DE 2026 - 4º ANO ${turmaFiltro}`;
+                thCol1.innerText = `SALA`;
+                dadosAlunos = dadosAlunos.filter(a => a.turma === turmaFiltro);
+                dadosAlunos.sort((a, b) => a.nome.localeCompare(b.nome));
+            }
+
+            tbody.innerHTML = "";
+            dadosAlunos.forEach((aluno, index) => {
+                let tr = document.createElement("tr");
+                let col1Val = tipo === 'geral' ? (index + 1) : aluno.turma;
+                
+                tr.innerHTML = `
+                    <td class="border border-black px-2 py-1 text-center font-semibold">${col1Val}</td>
+                    <td class="border border-black px-2 py-1 font-medium">${aluno.nome}</td>
+                    <td class="border border-black px-2 py-1 text-center">${aluno.port.toFixed(2).replace('.', ',')}</td>
+                    <td class="border border-black px-2 py-1 text-center">${aluno.ing.toFixed(2).replace('.', ',')}</td>
+                    <td class="border border-black px-2 py-1 text-center">${aluno.hist.toFixed(2).replace('.', ',')}</td>
+                    <td class="border border-black px-2 py-1 text-center">${aluno.geo.toFixed(2).replace('.', ',')}</td>
+                    <td class="border border-black px-2 py-1 text-center">${aluno.art.toFixed(2).replace('.', ',')}</td>
+                    <td class="border border-black px-2 py-1 text-center">${aluno.cien.toFixed(2).replace('.', ',')}</td>
+                    <td class="border border-black px-2 py-1 text-center">${aluno.mat.toFixed(2).replace('.', ',')}</td>
+                    <td class="border border-black px-2 py-1 text-center font-bold">${aluno.soma.toFixed(2).replace('.', ',')}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function extrairAlunosDoStorage(src) {
+            let d3A = JSON.parse(src["dados_turma_a_sim3"] || "[]");
+            let d3B = JSON.parse(src["dados_turma_b_sim3"] || "[]");
+            let listaUnificada = [...d3A, ...d3B];
+
+            let mapa = new Map();
+            listaUnificada.forEach(item => {
+                let nome = item["Name"] || item["NAME"] || item["nome"] || "";
+                if (!nome) return;
+                let turma = String(item["Class"] || item["turma"] || "A").trim().toUpperCase();
+                
+                mapa.set(`${nome}_${turma}`, {
+                    nome: String(nome).trim(),
+                    turma: turma,
+                    port: Number(item["Português"] || item["PORT"] || 0),
+                    ing: Number(item["Inglês"] || item["ING"] || 0),
+                    hist: Number(item["História"] || item["HIST"] || 0),
+                    geo: Number(item["Geografia"] || item["GEO"] || 0),
+                    art: Number(item["Artes"] || item["ART"] || 0),
+                    cien: Number(item["Ciências"] || item["CIÊN"] || 0),
+                    mat: Number(item["Matemática"] || item["MAT"] || 0),
+                    soma: Number(item["Total Marks"] || item["SOMA"] || 0)
+                });
+            });
+            return Array.from(mapa.values());
+        }
+    </script>
+</body>
+</html>
