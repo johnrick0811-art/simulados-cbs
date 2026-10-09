@@ -34,7 +34,7 @@
         <!-- Área de Upload -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div class="p-4 bg-gray-50 rounded-xl border">
-                <h3 class="font-bold text-gray-800 text-xs mb-2">📄 Planilha EvalBee (Turma A ou Geral)</h3>
+                <h3 class="font-bold text-gray-800 text-xs mb-2">📄 Planilha EvalBee (Turma A)</h3>
                 <input type="file" id="file-turma-a" accept=".xlsx" class="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-blue-600 file:text-white mb-2">
                 <span id="status-a" class="text-xs text-gray-400">Nenhum arquivo</span>
             </div>
@@ -55,7 +55,6 @@
     </div>
 
     <script>
-        // Suas credenciais do Supabase
         const SUPABASE_URL = "https://ayclwucigtoufybvmtll.supabase.co";
         const SUPABASE_KEY = "sb_publishable_uXpJrC1SkAXsyqLqxqdFZw_RvEsxLXy";
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -68,12 +67,18 @@
         }
 
         function atualizarBadge() {
-            let dadosA = localStorage.getItem(`dados_turma_a_sim${sim];`);
             let badge = document.getElementById("status-badge");
-            badge.innerText = localStorage.getItem(`dados_turma_a_sim${simAtual}`) ? "🟢 Dados Carregados" : "⚪ Vazio";
+            let temA = localStorage.getItem(`dados_turma_a_sim${simAtual}`);
+            let temB = localStorage.getItem(`dados_turma_b_sim${simAtual}`);
+            if (temA || temB) {
+                badge.className = "px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800";
+                badge.innerText = "🟢 Dados Carregados";
+            } else {
+                badge.className = "px-3 py-1 rounded-full text-xs font-bold bg-gray-200 text-gray-700";
+                badge.innerText = "⚪ Vazio";
+            }
         }
 
-        // Leitura do arquivo A
         document.getElementById('file-turma-a').addEventListener('change', function(e) {
             let file = e.target.files[0];
             if (!file) return;
@@ -89,7 +94,6 @@
             reader.readAsArrayBuffer(file);
         });
 
-        // Leitura do arquivo B
         document.getElementById('file-turma-b').addEventListener('change', function(e) {
             let file = e.target.files[0];
             if (!file) return;
@@ -125,6 +129,8 @@
                 alert("Erro ao salvar: " + err.message);
             }
         }
+
+        window.onload = atualizarBadge;
     </script>
 </body>
 </html>
