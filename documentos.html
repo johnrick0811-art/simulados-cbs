@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerador de Documentos Oficiais - CBS</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Bibliotecas para processar e exportar arquivos Word (.docx) com template -->
+    <!-- Bibliotecas para processar e gerar o Word (.docx) com template -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.39.0/docxtemplater.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.4/pizzip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
@@ -20,7 +19,7 @@
 </head>
 <body class="bg-gray-100 font-sans p-4 md:p-8">
 
-    <!-- Menu de Filtros e Exportação (Oculto na Impressão) -->
+    <!-- Painel de Controles e Exportação (Oculto na Impressão) -->
     <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-md mb-6 no-print">
         <div class="flex justify-between items-center mb-4">
             <h1 class="text-base font-bold text-blue-700">📄 Gerador de Documentos Oficiais - CBS</h1>
@@ -51,44 +50,41 @@
                 </select>
             </div>
             <div class="flex items-end">
-                <button onclick="carregarDocumento()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded text-xs transition shadow">🔍 Gerar Visualização</button>
+                <button onclick="carregarDocumento()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded text-xs transition shadow">🔍 Visualizar</button>
             </div>
         </div>
 
-        <!-- Seção de Exportação (PDF e Word com Template) -->
+        <!-- Seção de Upload do Modelo Word e Botões -->
         <div class="flex flex-wrap justify-between items-center border-t pt-3 gap-3">
             <div class="flex items-center gap-2">
-                <label class="text-[11px] font-bold text-gray-700">Template Word (.docx):</label>
+                <label class="text-[11px] font-bold text-gray-700">Seu Modelo Word (.docx):</label>
                 <input type="file" id="file-template-word" accept=".docx" class="text-[11px] text-gray-500 file:py-1 file:px-2 file:rounded file:border-0 file:bg-gray-700 file:text-white">
             </div>
             <div class="flex gap-2">
-                <button onclick="gerarWordComTemplate()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded text-xs transition shadow">📥 Baixar Word (.docx)</button>
+                <button onclick="gerarWordComTemplate()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded text-xs transition shadow">📥 Baixar Word Preenchido</button>
                 <button onclick="window.print()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded text-xs transition shadow">🖨️ Salvar PDF</button>
             </div>
         </div>
     </div>
 
-    <!-- DOCUMENTO OFICIAL FORMATADO -->
+    <!-- TELA DE PRÉ-VISUALIZAÇÃO -->
     <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-lg relatorio-card border border-gray-200">
-        <!-- Cabeçalho Institucional Oficial -->
         <div class="text-center border-b-2 border-black pb-3 mb-4">
             <h2 class="text-xs font-black tracking-wider">CBS</h2>
             <h1 class="text-sm font-black tracking-wide my-0.5">COLÉGIO BATISTA DE SANTARÉM</h1>
             <p class="text-[10px] font-bold text-gray-700 uppercase tracking-widest">78 ANOS EDUCANDO GERAÇÕES E FAZENDO HISTÓRIA!</p>
         </div>
 
-        <!-- Título Dinâmico -->
         <div id="doc-titulo" class="text-center font-bold text-xs mb-4 uppercase">
-            CLASSIFICAÇÃO GERAL DO SIMULADO
+            III SIMULADO DE 2026 - 4º ANO A
         </div>
 
-        <!-- Tabela -->
         <div class="overflow-x-auto">
             <table class="min-w-full border-collapse border border-black text-[11px]">
                 <thead>
                     <tr class="bg-gray-100 text-black">
                         <th class="border border-black px-2 py-1 text-center w-12" id="th-col-1">SALA</th>
-                        <th class="border border-black px-2 py-1 text-left">NOME DO ALUNO</th>
+                        <th class="border border-black px-2 py-1 text-left">NOME</th>
                         <th class="border border-black px-2 py-1 text-center w-10">PORT.</th>
                         <th class="border border-black px-2 py-1 text-center w-10">ING.</th>
                         <th class="border border-black px-2 py-1 text-center w-10">HIST.</th>
@@ -100,31 +96,18 @@
                     </tr>
                 </thead>
                 <tbody id="tabela-corpo">
-                    <tr><td colspan="10" class="border border-black px-2 py-4 text-center text-gray-500">Selecione os parâmetros e clique em Gerar Visualização.</td></tr>
+                    <tr><td colspan="10" class="border border-black px-2 py-4 text-center text-gray-500">Selecione os parâmetros e clique em Visualizar.</td></tr>
                 </tbody>
             </table>
         </div>
 
-        <!-- Rodapé -->
         <div class="text-center font-bold text-[10px] mt-6 text-gray-800 tracking-wider">
             COLÉGIO BATISTA DE SANTARÉM - SISTEMA DE AVALIAÇÃO
         </div>
     </div>
 
     <script>
-        const SUPABASE_URL = "https://ayclwucigtoufybvmtll.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_uXpJrC1SkAXsyqLqxqdFZw_RvEsxLXy";
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        async function buscarDadosBanco() {
-            try {
-                let { data, error } = await supabaseClient.from('dados_sistema').select('*').eq('id', 'estado_geral').single();
-                if (data && data.conteudo) return data.conteudo;
-            } catch (err) {}
-            return localStorage;
-        }
-
-        async function carregarDocumento() {
+        function carregarDocumento() {
             let sim = document.getElementById("filtro-simulado").value;
             let tipo = document.getElementById("tipo-relatorio").value;
             let turmaFiltro = document.getElementById("filtro-turma").value;
@@ -134,8 +117,7 @@
 
             tbody.innerHTML = `<tr><td colspan="10" class="border border-black px-2 py-4 text-center text-gray-500">Carregando dados...</td></tr>`;
 
-            let src = await buscarDadosBanco();
-            let tituloCustom = src[`titulo_sim_${sim}`] || "SIMULADO CBS";
+            let tituloCustom = localStorage.getItem(`titulo_sim_${sim}`) || "III SIMULADO DE 2026 - 4º ANO A";
             
             if (tipo === 'geral') {
                 tituloDoc.innerText = `${tituloCustom} - CLASSIFICAÇÃO GERAL`;
@@ -145,7 +127,7 @@
                 thCol1.innerText = `SALA`;
             }
 
-            let dadosAlunos = extrairAlunosDoSimulado(src, sim);
+            let dadosAlunos = extrairAlunosDoLocalStorage(sim);
 
             if (dadosAlunos.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="10" class="border border-black px-2 py-4 text-center text-red-500 font-bold">Nenhum dado encontrado para este simulado. Faça o upload no Painel.</td></tr>`;
@@ -180,9 +162,9 @@
             });
         }
 
-        function extrairAlunosDoSimulado(src, sim) {
-            let d1 = JSON.parse(src[`dados_turma_a_sim${sim}`] || "[]");
-            let d2 = JSON.parse(src[`dados_turma_b_sim${sim}`] || "[]");
+        function extrairAlunosDoLocalStorage(sim) {
+            let d1 = JSON.parse(localStorage.getItem(`dados_turma_a_sim${sim}`) || "[]");
+            let d2 = JSON.parse(localStorage.getItem(`dados_turma_b_sim${sim}`) || "[]");
             let listaUnificada = [...d1, ...d2];
 
             let mapa = new Map();
@@ -207,7 +189,7 @@
             return Array.from(mapa.values());
         }
 
-        // Função para preencher o modelo Word (.docx) enviado pelo usuário
+        // Função que lê o seu modelo Word (.docx) enviado e injeta os dados nas tags
         async function gerarWordComTemplate() {
             let fileInput = document.getElementById("file-template-word");
             if (fileInput.files.length === 0) {
@@ -216,14 +198,21 @@
             }
 
             let sim = document.getElementById("filtro-simulado").value;
-            let src = await buscarDadosBanco();
-            let tituloCustom = src[`titulo_sim_${sim}`] || "SIMULADO CBS";
-            let dadosAlunos = extrairAlunosDoSimulado(src, sim);
-            dadosAlunos.sort((a, b) => b.soma - a.soma);
+            let tipo = document.getElementById("tipo-relatorio").value;
+            let turmaFiltro = document.getElementById("filtro-turma").value;
+            
+            let tituloCustom = localStorage.getItem(`titulo_sim_${sim}`) || "III SIMULADO DE 2026 - 4º ANO A";
+            let dadosAlunos = extrairAlunosDoLocalStorage(sim);
 
-            // Prepara os dados para o Docxtemplater (ex: tags no Word como {#alunos} {nome} {soma} {/alunos})
+            if (tipo === 'geral') {
+                dadosAlunos.sort((a, b) => b.soma - a.soma);
+            } else {
+                dadosAlunos = dadosAlunos.filter(a => a.turma === turmaFiltro);
+                dadosAlunos.sort((a, b) => a.nome.localeCompare(b.nome));
+            }
+
             let alunosFormatados = dadosAlunos.map((a, idx) => ({
-                posicao: idx + 1,
+                posicao: tipo === 'geral' ? idx + 1 : a.turma,
                 turma: a.turma,
                 nome: a.nome,
                 port: a.port.toFixed(2).replace('.', ','),
@@ -248,7 +237,7 @@
                     });
 
                     doc.render({
-                        titulo_simulado: tituloCustom,
+                        titulo_simulado: `${tituloCustom} ${tipo === 'geral' ? '- CLASSIFICAÇÃO GERAL' : '- TURMA ' + turmaFiltro}`,
                         data_geracao: new Date().toLocaleDateString('pt-BR'),
                         alunos: alunosFormatados
                     });
@@ -260,7 +249,7 @@
 
                     saveAs(out, `Relatorio_${tituloCustom.replace(/\s+/g, '_')}.docx`);
                 } catch (error) {
-                    alert("Erro ao processar o modelo Word: " + error.message);
+                    alert("Erro ao processar o modelo Word. Verifique as tags: " + error.message);
                 }
             };
             reader.readAsArrayBuffer(file);
