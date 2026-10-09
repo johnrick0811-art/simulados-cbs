@@ -18,7 +18,7 @@
 </head>
 <body class="bg-gray-100 font-sans p-4 md:p-8">
 
-    <!-- Painel de Controles e Botões de Exportação -->
+    <!-- Painel de Controles e Botões de Exportação (Sem Upload) -->
     <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-md mb-6 no-print">
         <div class="flex justify-between items-center mb-4">
             <h1 class="text-base font-bold text-blue-700">📄 Gerador de Documentos Oficiais - CBS</h1>
@@ -62,7 +62,7 @@
         </div>
     </div>
 
-    <!-- TELA DE PRÉ-VISUALIZAÇÃO -->
+    <!-- TELA DE PRÉ-VISUALIZAÇÃO VINDO DO MODELO -->
     <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-lg relatorio-card border border-gray-200">
         <div class="text-center border-b-2 border-black pb-3 mb-4">
             <h2 class="text-xs font-black tracking-wider">CBS</h2>
@@ -91,7 +91,7 @@
                     </tr>
                 </thead>
                 <tbody id="tabela-corpo">
-                    <tr><td colspan="10" class="border border-black px-2 py-4 text-center text-gray-500">Carregando dados...</td></tr>
+                    <tr><td colspan="10" class="border border-black px-2 py-4 text-center text-gray-500">Carregando dados do modelo...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -116,10 +116,10 @@
 
             let statusModelo = document.getElementById("status-modelo-carregado");
             if (nomeTemplate) {
-                statusModelo.innerText = `📑 Modelo salvo: ${nomeTemplate}`;
+                statusModelo.innerText = `📑 Modelo do Painel: ${nomeTemplate}`;
                 statusModelo.className = "text-xs font-bold text-green-700";
             } else {
-                statusModelo.innerText = `⚠️ Nenhum modelo Word salvo no Painel para este simulado!`;
+                statusModelo.innerText = `⚠️ Nenhum modelo Word salvo no Painel!`;
                 statusModelo.className = "text-xs font-bold text-red-600";
             }
             
