@@ -6,6 +6,10 @@
     <title>Gerador de Documentos Oficiais - CBS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Bibliotecas para processar e exportar arquivos Word (.docx) com template -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.39.0/docxtemplater.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.4/pizzip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
         @media print {
             body { background: white; padding: 0; }
@@ -16,37 +20,51 @@
 </head>
 <body class="bg-gray-100 font-sans p-4 md:p-8">
 
-    <!-- Menu de Filtros (Oculto na Impressão) -->
+    <!-- Menu de Filtros e Exportação (Oculto na Impressão) -->
     <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-md mb-6 no-print">
         <div class="flex justify-between items-center mb-4">
             <h1 class="text-base font-bold text-blue-700">📄 Gerador de Documentos Oficiais - CBS</h1>
-            <!-- Link corrigido para index.html -->
             <a href="index.html" class="bg-gray-200 text-gray-700 px-3 py-1 rounded text-xs font-bold hover:bg-gray-300 transition">⬅ Voltar ao Painel</a>
         </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+            <div>
+                <label class="block text-[11px] font-bold text-gray-700 mb-1">Simulado</label>
+                <select id="filtro-simulado" class="w-full px-3 py-2 border rounded text-xs font-semibold bg-gray-50">
+                    <option value="3" selected>3º Simulado</option>
+                    <option value="2">2º Simulado</option>
+                    <option value="1">1º Simulado</option>
+                </select>
+            </div>
             <div>
                 <label class="block text-[11px] font-bold text-gray-700 mb-1">Tipo de Relatório</label>
                 <select id="tipo-relatorio" class="w-full px-3 py-2 border rounded text-xs font-semibold bg-gray-50">
-                    <option value="geral">Classificação Geral (Série Completa)</option>
-                    <option value="turma">Relatório por Turma Específica</option>
+                    <option value="geral">Classificação Geral</option>
+                    <option value="turma">Turma Específica</option>
                 </select>
             </div>
             <div>
                 <label class="block text-[11px] font-bold text-gray-700 mb-1">Turma</label>
                 <select id="filtro-turma" class="w-full px-3 py-2 border rounded text-xs font-semibold bg-gray-50">
                     <option value="A">Turma A</option>
-                    <option value="B">Turma B / C</option>
+                    <option value="C">Turma B / C</option>
                 </select>
             </div>
             <div class="flex items-end">
-                <button onclick="carregarDocumento()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded text-xs transition shadow">🔍 Gerar Documento</button>
+                <button onclick="carregarDocumento()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded text-xs transition shadow">🔍 Gerar Visualização</button>
             </div>
         </div>
 
-        <div class="flex justify-between items-center border-t pt-3">
-            <span class="text-[11px] text-gray-500">Clique em Imprimir para salvar como PDF limpo em A4.</span>
-            <button onclick="window.print()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded text-xs transition shadow">🖨️ Imprimir / Salvar PDF</button>
+        <!-- Seção de Exportação (PDF e Word com Template) -->
+        <div class="flex flex-wrap justify-between items-center border-t pt-3 gap-3">
+            <div class="flex items-center gap-2">
+                <label class="text-[11px] font-bold text-gray-700">Template Word (.docx):</label>
+                <input type="file" id="file-template-word" accept=".docx" class="text-[11px] text-gray-500 file:py-1 file:px-2 file:rounded file:border-0 file:bg-gray-700 file:text-white">
+            </div>
+            <div class="flex gap-2">
+                <button onclick="gerarWordComTemplate()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded text-xs transition shadow">📥 Baixar Word (.docx)</button>
+                <button onclick="window.print()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded text-xs transition shadow">🖨️ Salvar PDF</button>
+            </div>
         </div>
     </div>
 
@@ -61,7 +79,7 @@
 
         <!-- Título Dinâmico -->
         <div id="doc-titulo" class="text-center font-bold text-xs mb-4 uppercase">
-            CLASSIFICAÇÃO GERAL DO SIMULADO - ENSINO FUNDAMENTAL / MÉDIO
+            CLASSIFICAÇÃO GERAL DO SIMULADO
         </div>
 
         <!-- Tabela -->
@@ -82,7 +100,7 @@
                     </tr>
                 </thead>
                 <tbody id="tabela-corpo">
-                    <tr><td colspan="10" class="border border-black px-2 py-4 text-center text-gray-500">Clique em "Gerar Documento" acima.</td></tr>
+                    <tr><td colspan="10" class="border border-black px-2 py-4 text-center text-gray-500">Selecione os parâmetros e clique em Gerar Visualização.</td></tr>
                 </tbody>
             </table>
         </div>
@@ -98,39 +116,45 @@
         const SUPABASE_KEY = "sb_publishable_uXpJrC1SkAXsyqLqxqdFZw_RvEsxLXy";
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        async function buscarDadosBanco() {
+            try {
+                let { data, error } = await supabaseClient.from('dados_sistema').select('*').eq('id', 'estado_geral').single();
+                if (data && data.conteudo) return data.conteudo;
+            } catch (err) {}
+            return localStorage;
+        }
+
         async function carregarDocumento() {
+            let sim = document.getElementById("filtro-simulado").value;
             let tipo = document.getElementById("tipo-relatorio").value;
             let turmaFiltro = document.getElementById("filtro-turma").value;
             let tituloDoc = document.getElementById("doc-titulo");
             let thCol1 = document.getElementById("th-col-1");
             const tbody = document.getElementById("tabela-corpo");
 
-            tbody.innerHTML = `<tr><td colspan="10" class="border border-black px-2 py-4 text-center text-gray-500">Buscando dados na nuvem...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="10" class="border border-black px-2 py-4 text-center text-gray-500">Carregando dados...</td></tr>`;
 
-            let dadosAlunos = [];
-            try {
-                let { data, error } = await supabaseClient.from('dados_sistema').select('*').eq('id', 'estado_geral').single();
-                if (data && data.conteudo) {
-                    dadosAlunos = extrairAlunosDoEvalBee(data.conteudo);
-                } else {
-                    dadosAlunos = extrairAlunosDoEvalBee(localStorage);
-                }
-            } catch (err) {
-                dadosAlunos = extrairAlunosDoEvalBee(localStorage);
+            let src = await buscarDadosBanco();
+            let tituloCustom = src[`titulo_sim_${sim}`] || "SIMULADO CBS";
+            
+            if (tipo === 'geral') {
+                tituloDoc.innerText = `${tituloCustom} - CLASSIFICAÇÃO GERAL`;
+                thCol1.innerText = `SALA`;
+            } else {
+                tituloDoc.innerText = `${tituloCustom} - TURMA ${turmaFiltro}`;
+                thCol1.innerText = `SALA`;
             }
 
+            let dadosAlunos = extrairAlunosDoSimulado(src, sim);
+
             if (dadosAlunos.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="10" class="border border-black px-2 py-4 text-center text-red-500 font-bold">Nenhum dado encontrado. Faça upload das planilhas no Painel primeiro.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="10" class="border border-black px-2 py-4 text-center text-red-500 font-bold">Nenhum dado encontrado para este simulado. Faça o upload no Painel.</td></tr>`;
                 return;
             }
 
             if (tipo === 'geral') {
-                tituloDoc.innerText = `CLASSIFICAÇÃO GERAL - ENSINO FUNDAMENTAL / MÉDIO`;
-                thCol1.innerText = `SALA`;
                 dadosAlunos.sort((a, b) => b.soma - a.soma);
             } else {
-                tituloDoc.innerText = `RELATÓRIO DA TURMA - ${turmaFiltro}`;
-                thCol1.innerText = `SALA`;
                 dadosAlunos = dadosAlunos.filter(a => a.turma === turmaFiltro);
                 dadosAlunos.sort((a, b) => a.nome.localeCompare(b.nome));
             }
@@ -156,20 +180,19 @@
             });
         }
 
-        function extrairAlunosDoEvalBee(src) {
-            let d3A = JSON.parse(src["dados_turma_a_sim3"] || src["dados_turma_a"] || "[]");
-            let d3B = JSON.parse(src["dados_turma_b_sim3"] || src["dados_turma_b"] || "[]");
-            let listaUnificada = [...d3A, ...d3B];
+        function extrairAlunosDoSimulado(src, sim) {
+            let d1 = JSON.parse(src[`dados_turma_a_sim${sim}`] || "[]");
+            let d2 = JSON.parse(src[`dados_turma_b_sim${sim}`] || "[]");
+            let listaUnificada = [...d1, ...d2];
 
             let mapa = new Map();
             listaUnificada.forEach(item => {
-                let nome = item["nome"] || item["Name"] || "";
+                let nome = item["nome"] || "";
                 if (!nome) return;
-                
-                let turma = String(item["turma"] || "A").trim().toUpperCase();
+                let turma = item["turma"] || "A";
 
                 mapa.set(`${nome}_${turma}`, {
-                    nome: String(nome).trim(),
+                    nome: nome,
                     turma: turma,
                     port: Number(item["port"] || 0),
                     ing: Number(item["ing"] || 0),
@@ -182,6 +205,65 @@
                 });
             });
             return Array.from(mapa.values());
+        }
+
+        // Função para preencher o modelo Word (.docx) enviado pelo usuário
+        async function gerarWordComTemplate() {
+            let fileInput = document.getElementById("file-template-word");
+            if (fileInput.files.length === 0) {
+                alert("Por favor, selecione o seu arquivo modelo em Word (.docx) primeiro.");
+                return;
+            }
+
+            let sim = document.getElementById("filtro-simulado").value;
+            let src = await buscarDadosBanco();
+            let tituloCustom = src[`titulo_sim_${sim}`] || "SIMULADO CBS";
+            let dadosAlunos = extrairAlunosDoSimulado(src, sim);
+            dadosAlunos.sort((a, b) => b.soma - a.soma);
+
+            // Prepara os dados para o Docxtemplater (ex: tags no Word como {#alunos} {nome} {soma} {/alunos})
+            let alunosFormatados = dadosAlunos.map((a, idx) => ({
+                posicao: idx + 1,
+                turma: a.turma,
+                nome: a.nome,
+                port: a.port.toFixed(2).replace('.', ','),
+                ing: a.ing.toFixed(2).replace('.', ','),
+                hist: a.hist.toFixed(2).replace('.', ','),
+                geo: a.geo.toFixed(2).replace('.', ','),
+                art: a.art.toFixed(2).replace('.', ','),
+                cien: a.cien.toFixed(2).replace('.', ','),
+                mat: a.mat.toFixed(2).replace('.', ','),
+                soma: a.soma.toFixed(2).replace('.', ',')
+            }));
+
+            let file = fileInput.files[0];
+            let reader = new FileReader();
+
+            reader.onload = function(e) {
+                try {
+                    let zip = new PizZip(e.target.result);
+                    let doc = new window.docxtemplater(zip, {
+                        paragraphLoop: true,
+                        linebreaks: true,
+                    });
+
+                    doc.render({
+                        titulo_simulado: tituloCustom,
+                        data_geracao: new Date().toLocaleDateString('pt-BR'),
+                        alunos: alunosFormatados
+                    });
+
+                    let out = doc.getZip().generate({
+                        type: "blob",
+                        mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    });
+
+                    saveAs(out, `Relatorio_${tituloCustom.replace(/\s+/g, '_')}.docx`);
+                } catch (error) {
+                    alert("Erro ao processar o modelo Word: " + error.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
         }
     </script>
 </body>
