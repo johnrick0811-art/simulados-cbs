@@ -12,12 +12,12 @@
         <header class="flex justify-between items-center mb-6 border-b pb-4">
             <div>
                 <h1 class="text-xl font-bold text-blue-600">🛠️ Painel de Controle - Simulados CBS</h1>
-                <p class="text-xs text-gray-500">Gerencie planilhas, séries e títulos para os relatórios.</p>
+                <p class="text-xs text-gray-500">Gerencie planilhas, template Word e configure os simulados.</p>
             </div>
             <a href="documentos.html" class="bg-emerald-100 text-emerald-800 px-4 py-2 rounded-lg font-bold text-xs hover:bg-emerald-200 transition">📄 Ir para Gerador de Documentos</a>
         </header>
 
-        <!-- Configurações do Simulado, Série e Turma -->
+        <!-- Configurações do Simulado, Série e Título -->
         <div class="mb-6 bg-blue-50 p-4 rounded-xl border border-blue-200 grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
             <div>
                 <label class="block text-xs font-bold text-blue-900 mb-1">Simulado:</label>
@@ -37,7 +37,14 @@
             </div>
         </div>
 
-        <!-- Área de Upload -->
+        <!-- Seção de Upload do Modelo Word (.docx) -->
+        <div class="mb-6 p-4 bg-indigo-50 rounded-xl border border-indigo-200">
+            <h3 class="font-bold text-indigo-900 text-xs mb-2">📑 Modelo Oficial em Word (.docx com Tags)</h3>
+            <input type="file" id="file-template-word" accept=".docx" class="w-full text-xs text-gray-600 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:bg-indigo-600 file:text-white mb-2">
+            <span id="status-template" class="text-xs text-gray-500 block">Nenhum modelo carregado.</span>
+        </div>
+
+        <!-- Área de Upload das Planilhas EvalBee -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div class="p-4 bg-gray-50 rounded-xl border relative">
                 <h3 class="font-bold text-gray-800 text-xs mb-2">📄 Planilha EvalBee (Turma A)</h3>
@@ -56,7 +63,7 @@
         <!-- Botões de Ação -->
         <div class="flex flex-wrap justify-between items-center gap-3 pt-4 border-t">
             <button onclick="salvarDadosLocais()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl text-xs transition shadow-lg">
-                💾 Salvar Configurações
+                💾 Salvar Configurações e Arquivos
             </button>
             <button onclick="excluirTudo()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl text-xs transition shadow-lg">
                 ⚠️ Limpar Todos os Dados
@@ -82,9 +89,11 @@
 
             let temA = localStorage.getItem(`dados_turma_a_sim${simAtual}`);
             let temB = localStorage.getItem(`dados_turma_b_sim${simAtual}`);
+            let temTemplate = localStorage.getItem(`template_nome_sim${simAtual}`);
 
             document.getElementById("status-a").innerText = temA ? "🟢 Turma A carregada." : "Nenhum arquivo";
             document.getElementById("status-b").innerText = temB ? "🟢 Turma B/C carregada." : "Nenhum arquivo";
+            document.getElementById("status-template").innerText = temTemplate ? `🟢 Modelo salvo: ${temTemplate}` : "Nenhum modelo carregado.";
         }
 
         function salvarConfiguracoes() {
@@ -93,6 +102,19 @@
             localStorage.setItem(`titulo_sim_${simAtual}`, titulo);
             localStorage.setItem(`serie_sim_${simAtual}`, serie);
         }
+
+        // Salvar Template Word em Base64 no LocalStorage
+        document.getElementById('file-template-word').addEventListener('change', function(e) {
+            let file = e.target.files[0];
+            if (!file) return;
+            let reader = new FileReader();
+            reader.onload = function(evt) {
+                localStorage.setItem(`template_word_sim${simAtual}`, evt.target.result);
+                localStorage.setItem(`template_nome_sim${simAtual}`, file.name);
+                document.getElementById("status-template").innerText = `🟢 Modelo salvo: ${file.name}`;
+            };
+            reader.readAsArrayBuffer(file);
+        });
 
         function limparDadosEvalBee(jsonBruto) {
             return jsonBruto.map(item => {
