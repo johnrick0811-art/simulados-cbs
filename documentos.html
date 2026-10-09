@@ -34,8 +34,8 @@
             <div>
                 <label class="block text-[11px] font-bold text-gray-700 mb-1">Turma</label>
                 <select id="filtro-turma" class="w-full px-3 py-2 border rounded text-xs font-semibold bg-gray-50">
-                    <option value="A">4º Ano A</option>
-                    <option value="B">4º Ano B</option>
+                    <option value="A">Turma A</option>
+                    <option value="C">Turma C</option>
                 </select>
             </div>
             <div class="flex items-end">
@@ -60,7 +60,7 @@
 
         <!-- Título Dinâmico -->
         <div id="doc-titulo" class="text-center font-bold text-xs mb-4 uppercase">
-            CLASSIFICAÇÃO GERAL DO III SIMULADO DE 2026 - 4º ANO
+            CLASSIFICAÇÃO GERAL DO SIMULADO - ENSINO FUNDAMENTAL / MÉDIO
         </div>
 
         <!-- Tabela -->
@@ -88,7 +88,7 @@
 
         <!-- Rodapé -->
         <div class="text-center font-bold text-[10px] mt-6 text-gray-800 tracking-wider">
-            III SIMULADO CBS 2026
+            COLÉGIO BATISTA DE SANTARÉM - SISTEMA DE AVALIAÇÃO
         </div>
     </div>
 
@@ -110,12 +110,12 @@
             try {
                 let { data, error } = await supabaseClient.from('dados_sistema').select('*').eq('id', 'estado_geral').single();
                 if (data && data.conteudo) {
-                    dadosAlunos = extrairAlunosDoStorage(data.conteudo);
+                    dadosAlunos = extrairAlunosDoEvalBee(data.conteudo);
                 } else {
-                    dadosAlunos = extrairAlunosDoStorage(localStorage);
+                    dadosAlunos = extrairAlunosDoEvalBee(localStorage);
                 }
             } catch (err) {
-                dadosAlunos = extrairAlunosDoStorage(localStorage);
+                dadosAlunos = extrairAlunosDoEvalBee(localStorage);
             }
 
             if (dadosAlunos.length === 0) {
@@ -124,11 +124,11 @@
             }
 
             if (tipo === 'geral') {
-                tituloDoc.innerText = `CLASSIFICAÇÃO GERAL DO III SIMULADO DE 2026 - 4º ANO`;
+                tituloDoc.innerText = `CLASSIFICAÇÃO GERAL - ENSINO FUNDAMENTAL / MÉDIO`;
                 thCol1.innerText = `SALA`;
                 dadosAlunos.sort((a, b) => b.soma - a.soma);
             } else {
-                tituloDoc.innerText = `III SIMULADO DE 2026 - 4º ANO ${turmaFiltro}`;
+                tituloDoc.innerText = `RELATÓRIO DA TURMA - ${turmaFiltro}`;
                 thCol1.innerText = `SALA`;
                 dadosAlunos = dadosAlunos.filter(a => a.turma === turmaFiltro);
                 dadosAlunos.sort((a, b) => a.nome.localeCompare(b.nome));
@@ -155,28 +155,40 @@
             });
         }
 
-        function extrairAlunosDoStorage(src) {
-            let d3A = JSON.parse(src["dados_turma_a_sim3"] || "[]");
-            let d3B = JSON.parse(src["dados_turma_b_sim3"] || "[]");
+        function extrairAlunosDoEvalBee(src) {
+            let d3A = JSON.parse(src["dados_turma_a_sim3"] || src["dados_turma_a"] || "[]");
+            let d3B = JSON.parse(src["dados_turma_b_sim3"] || src["dados_turma_b"] || "[]");
             let listaUnificada = [...d3A, ...d3B];
 
             let mapa = new Map();
             listaUnificada.forEach(item => {
                 let nome = item["Name"] || item["NAME"] || item["nome"] || "";
                 if (!nome) return;
-                let turma = String(item["Class"] || item["turma"] || "A").trim().toUpperCase();
                 
+                let turmaRaw = String(item["Class"] || item["turma"] || "A").trim().toUpperCase();
+                let turma = turmaRaw.includes("C") ? "C" : "A";
+                
+                let port = Number(item["6 Ano -PORTUGUÊS"] || item["PORT"] || item["Português"] || 0);
+                let ing  = Number(item["6 Ano -INGLÊS "] || item["ING"] || item["Inglês"] || 0);
+                let hist = Number(item["6 Ano -HISTÓRIA"] || item["HIST"] || item["História"] || 0);
+                let geo  = Number(item["6 Ano -GEOGRAFIA"] || item["GEO"] || item["Geografia"] || 0);
+                let art  = Number(item["6 Ano -ARTES"] || item["ART"] || 0);
+                let cien = Number(item["6 Ano -BIOLOGIA"] || item["6 Ano -CIÊNCIAS"] || item["CIÊN"] || item["Ciências"] || 0);
+                let mat  = Number(item["6 Ano -MATEMÁTICA "] || item["MAT"] || item["Matemática"] || 0);
+                
+                let somaTotal = Number(item["Total Marks"] || (port + ing + hist + geo + art + cien + mat) || 0);
+
                 mapa.set(`${nome}_${turma}`, {
                     nome: String(nome).trim(),
                     turma: turma,
-                    port: Number(item["Português"] || item["PORT"] || 0),
-                    ing: Number(item["Inglês"] || item["ING"] || 0),
-                    hist: Number(item["História"] || item["HIST"] || 0),
-                    geo: Number(item["Geografia"] || item["GEO"] || 0),
-                    art: Number(item["Artes"] || item["ART"] || 0),
-                    cien: Number(item["Ciências"] || item["CIÊN"] || 0),
-                    mat: Number(item["Matemática"] || item["MAT"] || 0),
-                    soma: Number(item["Total Marks"] || item["SOMA"] || 0)
+                    port: port,
+                    ing: ing,
+                    hist: hist,
+                    geo: geo,
+                    art: art,
+                    cien: cien,
+                    mat: mat,
+                    soma: somaTotal
                 });
             });
             return Array.from(mapa.values());
